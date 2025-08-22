@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Cardápio</title>
+  <meta name="description" content="Galeria de imagens simples e responsiva para compartilhar por link." />
+  <!-- Open Graph para preview ao compartilhar -->
+  <meta property="og:title" content="Cardápio" />
+  <meta property="og:description" content="Veja as fotos neste álbum online." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="" />
+  <meta name="theme-color" content="#111827" />
+  <style>
+    :root{
+      --bg:#0b0f18; /* fundo escuro elegante */
+      --card:#111827; /* cartão */
+      --muted:#9aa3b2; /* texto secundário */
+      --text:#e5e7eb; /* texto principal */
+      --accent:#60a5fa; /* azul */
+      --accent-2:#a78bfa; /* roxo */
+      --radius:18px;
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color:var(--text);
+      background: radial-gradient(1200px 600px at 10% -10%, #111827 0%, transparent 60%),
+                  radial-gradient(1000px 500px at 120% -20%, #1f2937 0%, transparent 60%),
+                  var(--bg);
+    }
+    .container{max-width:1100px;margin:0 auto;padding:24px}
+
+    header{
+      display:flex;flex-wrap:wrap;gap:16px;align-items:center;justify-content:space-between;
+      margin:14px 0 20px 0;
+    }
+    .title{font-size:clamp(22px,4vw,36px);font-weight:800;letter-spacing:.3px}
+    .subtitle{color:var(--muted);font-size:clamp(14px,2.4vw,16px)}
+
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    button, .linklike{
+      border:1px solid #2b3342;background:linear-gradient(180deg,#161d2b,#0f1522);
+      color:var(--text);padding:10px 14px;border-radius:999px;cursor:pointer;font-weight:600;
+      transition:transform .04s ease, border-color .2s ease;
+      box-shadow:var(--shadow);
+    }
+    button:hover{border-color:#3a4458}
+    button:active{transform:translateY(1px)}
+
+    .grid{
+      display:grid;gap:14px;
+      grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+    }
+    .card{position:relative;background:var(--card);border-radius:var(--radius);overflow:hidden}
+    .card img{width:100%;height:260px;object-fit:cover;display:block;filter:saturate(1.02);}
+    .card footer{position:absolute;left:0;right:0;bottom:0;padding:10px 12px;background:
+      linear-gradient(180deg,rgba(0,0,0,0) 0%, rgba(0,0,0,.55) 90%);
+      font-size:13px;color:#e8e9ee
+    }
+
+    /* Lightbox */
+    .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.87);display:none;align-items:center;justify-content:center;z-index:50}
+    .lightbox.open{display:flex}
+    .lightbox img{max-width:94vw;max-height:86vh;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+    .lightbox .nav{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 10px}
+    .lightbox .nav button{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15)}
+    .closeBtn{position:absolute;top:14px;right:14px}
+
+    footer.page{margin:26px 0 10px;color:var(--muted);font-size:13px;text-align:center}
+    .tip{margin-top:6px;font-size:12px;color:#b8c0cf}
+
+    /* Pequeños touch targets em mobile */
+    @media (max-width:520px){
+      .card img{height:200px}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <div class="title" id="albumTitle">Cardápio</div>
+        <div class="subtitle" id="albumDesc">Clique em uma imagem para ver em tela cheia.</div>
+      </div>
+      <div class="actions">
+        <button id="copyLink">Copiar link</button>
+        <button id="downloadAll">Baixar todas</button>
+      </div>
+    </header>
+
+    <main class="grid" id="gallery"></main>
+
+    <footer class="page">
+      Cardápio da Laura
+      <div class="tip">Dica: você também pode carregar imagens via URL usando o parâmetro <code>?images=</code>. Veja instruções no código.</div>
+    </footer>
+  </div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" aria-hidden="true" role="dialog">
+    <img id="lightboxImg" alt="Imagem ampliada" />
+    <button class="closeBtn" id="closeLb" aria-label="Fechar">✕</button>
+    <div class="nav">
+      <button id="prev" aria-label="Anterior">◀</button>
+      <button id="next" aria-label="Próximo">▶</button>
+    </div>
+  </div>
+
+  <script>
+    // =============================================================
+    // 🚀 COMO USAR (instruções rápidas)
+    // 1) Coloque suas imagens na mesma pasta (ex: /images) e
+    //    edite o array IMAGES abaixo com os caminhos e legendas.
+    // 2) Publique a pasta (com este index.html e as imagens) em
+    //    GitHub Pages / Netlify / Vercel. Pronto: é só compartilhar o link
+    //    e gerar o QR code.
+    // 3) (Opcional) Você pode montar uma galeria via URL sem editar o arquivo:
+    //    Use ?images=URL1,URL2,URL3&title=Meu%20Álbum&desc=Minhas%20fotos
+    //    Obs: se a URL de imagem tiver vírgula, use %2C.
+    // =============================================================
+
+    // 🔧 Edite aqui se quiser embutir as imagens
+    const IMAGES = [
+      { src: "images/images1.jpg", alt: "Foto 1", caption: "Burguers" },
+      { src: "images/images2.jpg", alt: "Foto 2", caption: "Bebidas" },
+      { src: "images/images3.jpg", alt: "Foto 3", caption: "Rodízio" },
+      { src: "images/images4.jpg", alt: "Foto 4", caption: "Valores" },
+      { src: "images/images5.jpg", alt: "Foto 5", caption: "Refeições" },
+    ];
+
+    // Lê parâmetros da URL
+    const params = new URLSearchParams(location.search);
+    const titleParam = params.get('title');
+    const descParam = params.get('desc');
+    const urlImages = params.get('images');
+
+    const state = {
+      title: titleParam || 'Cardápio',
+      desc: descParam || 'Clique em uma imagem para ver em tela cheia.',
+      images: [...IMAGES],
+      currentIndex: 0
+    };
+
+    if (urlImages) {
+      // Divide por vírgulas, respeitando %2C
+      const list = urlImages.split(',').map(s => decodeURIComponent(s.trim())).filter(Boolean);
+      state.images = list.map((src, i) => ({ src, alt: `Imagem ${i+1}`, caption: '' }));
+    }
+
+    // Atualiza título/descrição
+    document.getElementById('albumTitle').textContent = state.title;
+    document.getElementById('albumDesc').textContent = state.desc;
+    document.title = state.title;
+
+    const galleryEl = document.getElementById('gallery');
+
+    function createCard(item, index){
+      const card = document.createElement('article');
+      card.className = 'card';
+      const img = document.createElement('img');
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      img.src = item.src;
+      img.alt = item.alt || '';
+      img.addEventListener('click', () => openLightbox(index));
+      const footer = document.createElement('footer');
+      footer.textContent = item.caption || '';
+      card.appendChild(img);
+      if ((item.caption||'').trim()) card.appendChild(footer);
+      return card;
+    }
+
+    function render(){
+      galleryEl.innerHTML = '';
+      if (!state.images.length){
+        const empty = document.createElement('div');
+        empty.style.color = '#b8c0cf';
+        empty.style.padding = '20px 6px';
+        empty.innerHTML = `Nenhuma imagem configurada.<br>\
+        <small>Edite o array <code>IMAGES</code> no código ou use <code>?images=url1,url2</code> na URL.</small>`;
+        galleryEl.appendChild(empty);
+        return;
+      }
+      state.images.forEach((it, i) => galleryEl.appendChild(createCard(it, i)));
+    }
+
+    // Lightbox
+    const lb = document.getElementById('lightbox');
+    const lbImg = document.getElementById('lightboxImg');
+    const btnPrev = document.getElementById('prev');
+    const btnNext = document.getElementById('next');
+    const btnClose = document.getElementById('closeLb');
+
+    function openLightbox(i){
+      state.currentIndex = i;
+      updateLightbox();
+      lb.classList.add('open');
+      lb.setAttribute('aria-hidden','false');
+    }
+    function closeLightbox(){
+      lb.classList.remove('open');
+      lb.setAttribute('aria-hidden','true');
+    }
+    function updateLightbox(){
+      const item = state.images[state.currentIndex];
+      lbImg.src = item.src;
+      lbImg.alt = item.alt || '';
+    }
+    function next(){
+      state.currentIndex = (state.currentIndex + 1) % state.images.length;
+      updateLightbox();
+    }
+    function prev(){
+      state.currentIndex = (state.currentIndex - 1 + state.images.length) % state.images.length;
+      updateLightbox();
+    }
+
+    btnNext.addEventListener('click', next);
+    btnPrev.addEventListener('click', prev);
+    btnClose.addEventListener('click', closeLightbox);
+    lb.addEventListener('click', (e) => { if (e.target === lb) closeLightbox(); });
+    window.addEventListener('keydown', (e)=>{
+      if (!lb.classList.contains('open')) return;
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowRight') next();
+      if (e.key === 'ArrowLeft') prev();
+    });
+
+    // Copiar link
+    document.getElementById('copyLink').addEventListener('click', async () => {
+      try{
+        await navigator.clipboard.writeText(location.href);
+        flash('Link copiado!');
+      }catch{
+        flash('Não foi possível copiar. Selecione a barra de endereço e copie manualmente.');
+      }
+    });
+
+    // Compactar tudo em .zip e baixar (client-side)
+    // Nota: usa uma técnica simples com JSZip por CDN sem dependências adicionais.
+    // Como CDNs podem ser bloqueados em alguns ambientes, se preferir remova esta função.
+    const downloadAllBtn = document.getElementById('downloadAll');
+    downloadAllBtn.addEventListener('click', async () => {
+      if (!state.images.length) return;
+      flash('Preparando arquivo… aguarde.');
+      // Carregamento dinâmico da lib JSZip
+      if (!window.JSZip){
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+        document.head.appendChild(s);
+        await new Promise(r => { s.onload = r; s.onerror = r; });
+      }
+      if (!window.JSZip){ flash('Falha ao carregar compactador.'); return; }
+      const zip = new JSZip();
+      // Baixa cada imagem e adiciona ao zip
+      for (let i=0;i<state.images.length;i++){
+        const src = state.images[i].src;
+        try{
+          const resp = await fetch(src, {mode: 'cors'});
+          const blob = await resp.blob();
+          const arr = await blob.arrayBuffer();
+          const name = `imagem_${String(i+1).padStart(2,'0')}${extFromType(blob.type)}`;
+          zip.file(name, arr);
+        }catch(err){ /* ignora falhas individuais */ }
+      }
+      const content = await zip.generateAsync({type:'blob'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(content);
+      a.download = (state.title || 'galeria') + '.zip';
+      a.click();
+    });
+
+    function extFromType(type){
+      if (type.includes('png')) return '.png';
+      if (type.includes('webp')) return '.webp';
+      if (type.includes('gif')) return '.gif';
+      return '.jpg';
+    }
+
+    // Feedback visual rápido
+    function flash(text){
+      const note = document.createElement('div');
+      note.textContent = text;
+      note.style.position='fixed';
+      note.style.left='50%'; note.style.top='20px'; note.style.transform='translateX(-50%)';
+      note.style.background='rgba(17,24,39,.9)'; note.style.border='1px solid #2b3342';
+      note.style.padding='10px 14px'; note.style.borderRadius='12px'; note.style.boxShadow='var(--shadow)';
+      note.style.zIndex=60; note.style.fontWeight='700';
+      document.body.appendChild(note);
+      setTimeout(()=> note.remove(), 1800);
+    }
+
+    render();
+  </script>
+</body>
+</html>
